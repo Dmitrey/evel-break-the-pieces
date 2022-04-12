@@ -10,53 +10,22 @@ public class BreakEvilPieces {
 
     public static void main(String[] args) {
         String shape = String.join("\n", new String[]{
-                "++",
-                "||",
-                "||",
-                "||",
-                "|+---------------+",
-                "|             +--+",
-                "|             |",
-                "|             +--+",
-                "+----------------+"});
-        String shape2 = String.join("\n", new String[]{
-                "         +------------+--+      +--+",
-                "         |            |  |      |  |",
-                "         | +-------+  |  |      |  |",
-                "         | |       |  |  +------+  |",
-                "         | |       |  |            |",
-                "         | |       |  |    +-------+",
-                "         | +-------+  |    |        ",
-                " +-------+            |    |        ",
-                " |       |            |    +-------+",
-                " |       |            |            |",
-                " +-------+            |            |",
-                "         |            |            |",
-                "    +----+---+--+-----+------------+",
-                "    |    |   |  |     |            |",
-                "    |    |   |  +-----+------------+",
-                "    |    |   |                     |",
-                "    +----+---+---------------------+",
-                "    |    |                         |",
-                "    |    | +----+                  |",
-                "+---+    | |    |     +------------+",
-                "|        | |    |     |             ",
-                "+--------+-+    +-----+             "});
-
-//        solve(shape).forEach(System.out::println);
-
-        solve(shape2).forEach(System.out::println);
+                "+--------------+",
+                "|              |",
+                "|        ++--+ |",
+                "|        ||  | |",
+                "|        ++--+ |",
+                "+--------------+"});
         solve(shape).forEach(System.out::println);
     }
 
     public static List<String> solve(String shape) {
-
+        System.out.println(shape);
         String[][] matrix = DirectionHolder.stringToArray(shape);
-
         int[][] starts = findStarts(matrix);
         List<Figure> res = new ArrayList<>();
 
-        for (int[] _start : starts) {
+        mark: for (int[] _start : starts) {
             DirectionHolder holder = new DirectionHolder(matrix, _start);
             while (true) {
                 holder.stepForward();
@@ -67,19 +36,30 @@ public class BreakEvilPieces {
                     holder.turnRight();
                     holder.rightCount++;
                 } else {
-                    int i = 0;
-                    while (!holder.canGoForward()) {
-                        i++;
-                        holder.turnRight();
-                        if (holder.isPrevious()) {
-                            holder.turnRight();
-                            i++;
+                    if (!holder.canGoForward()) {
+                        if (!holder.canGoLeft()){
+
+                            continue mark;
                         }
-                        if (i == 3) {
-                            holder.leftCount++;
-                        }
+                        holder.turnLeft();
+                        holder.leftCount++;
                     }
                 }
+
+//                else {
+//                    int i = 0;
+//                    while (!holder.canGoForward()) {
+//                        i++;
+//                        holder.turnRight();
+//                        if (holder.isPrevious()) {
+//                            holder.turnRight();
+//                            i++;
+//                        }
+//                        if (i == 3) {
+//                            holder.leftCount++;
+//                        }
+//                    }
+//                }
             }
             if (holder.rightCount > holder.leftCount) {
                 res.add(new Figure(holder.getFigure(), holder.getPointsList()));
@@ -110,7 +90,7 @@ public class BreakEvilPieces {
                 .map(DirectionHolder::deleteStartSpaces)
                 .map(s -> s.replaceAll(" ^", ""))
                 .collect(Collectors.toList());
-        System.out.println(shape);
+
         return finalList;
     }
 
@@ -240,8 +220,9 @@ class DirectionHolder {
             (int[] arr) -> new int[]{arr[0], arr[1] - 1},
             (int[] arr) -> new int[]{arr[0] - 1, arr[1]}
     );
-    private Function<int[], int[]> currentDirection = list.get(index);
+    private Function<int[], int[]> currentDirection;
     private Function<int[], int[]> rightDirection;
+    private Function<int[], int[]> leftDirection;
 
     public DirectionHolder(String[][] matrix, int[] start) {
         this.matrix = matrix;
@@ -261,6 +242,11 @@ class DirectionHolder {
         } catch (Exception e) {
             rightDirection = list.get(0);
         }
+        try {
+            leftDirection = list.get(index - 1);
+        } catch (Exception e) {
+            leftDirection = list.get(3);
+        }
     }
 
     public void stepForward() {
@@ -272,6 +258,14 @@ class DirectionHolder {
 
     public boolean canGoRight() {
         int[] checkPoint = rightDirection.apply(point);
+//        if (pointsList.contains(checkPoint)){
+//            return false;
+//        }
+        for (int[] a : pointsList) {
+            if (Arrays.equals(a, checkPoint)) {
+                return false;
+            }
+        }
         String element;
         try {
             element = matrix[checkPoint[0]][checkPoint[1]];
@@ -283,11 +277,39 @@ class DirectionHolder {
             }
             if (matrix[point[0]][point[1]].equals("+"))
                 return element.equals("-") || element.equals("|") || element.equals("+");
-            if (matrix[point[0]][point[1]].equals("-"))
-                return element.equals("|") || element.equals("+");
-            if (matrix[point[0]][point[1]].equals("|"))
-                return element.equals("-") || element.equals("+");
-            return true;
+//            if (matrix[point[0]][point[1]].equals("-"))
+//                return element.equals("|") || element.equals("+");
+//            if (matrix[point[0]][point[1]].equals("|"))
+//                return element.equals("-") || element.equals("+");
+            return false;
+        } catch (IndexOutOfBoundsException e) {
+            return false;
+        }
+    }
+
+    public boolean canGoLeft() {
+        int[] checkPoint = leftDirection.apply(point);
+        for (int[] a : pointsList) {
+            if (Arrays.equals(a, checkPoint)) {
+                return false;
+            }
+        }
+        String element;
+        try {
+            element = matrix[checkPoint[0]][checkPoint[1]];
+            if (prevPoint != null) {
+                if (matrix[point[0]][point[1]].equals("+") && matrix[prevPoint[0]][prevPoint[1]].equals("-"))
+                    return element.equals("|") || element.equals("+");
+                if (matrix[point[0]][point[1]].equals("+") && matrix[prevPoint[0]][prevPoint[1]].equals("|"))
+                    return element.equals("-") || element.equals("+");
+            }
+            if (matrix[point[0]][point[1]].equals("+"))
+                return element.equals("-") || element.equals("|") || element.equals("+");
+//            if (matrix[point[0]][point[1]].equals("-"))
+//                return element.equals("|") || element.equals("+");
+//            if (matrix[point[0]][point[1]].equals("|"))
+//                return element.equals("-") || element.equals("+");
+            return false;
         } catch (IndexOutOfBoundsException e) {
             return false;
         }
@@ -298,6 +320,12 @@ class DirectionHolder {
         String element;
         try {
             element = matrix[checkPoint[0]][checkPoint[1]];
+            if (prevPoint != null) {
+                if (matrix[point[0]][point[1]].equals("+") && matrix[prevPoint[0]][prevPoint[1]].equals("-"))
+                    return element.equals("-") || element.equals("+");
+                if (matrix[point[0]][point[1]].equals("+") && matrix[prevPoint[0]][prevPoint[1]].equals("|"))
+                    return element.equals("|") || element.equals("+");
+            }
             return element.equals("-") || element.equals("|") || element.equals("+");
         } catch (IndexOutOfBoundsException e) {
             return false;
@@ -306,6 +334,11 @@ class DirectionHolder {
 
     public void turnRight() {
         index = index < 3 ? index + 1 : 0;
+        updateDirections();
+    }
+
+    public void turnLeft() {
+        index = index > 0 ? index - 1 : 3;
         updateDirections();
     }
 
