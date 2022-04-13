@@ -10,12 +10,13 @@ public class BreakEvilPieces {
 
     public static void main(String[] args) {
         String shape = String.join("\n", new String[]{
-                "+--------------+",
-                "|              |",
-                "|        ++--+ |",
-                "|        ||  | |",
-                "|        ++--+ |",
-                "+--------------+"});
+                "+---------------+",
+                "|  +----+       |",
+                "|  |    |  +-++ |",
+                "|  |    +--+ || |",
+                "|  |    |  +-++ |",
+                "|  +----+       |",
+                "+---------------+"});
         solve(shape).forEach(System.out::println);
     }
 
@@ -25,7 +26,8 @@ public class BreakEvilPieces {
         int[][] starts = findStarts(matrix);
         List<Figure> res = new ArrayList<>();
 
-        mark: for (int[] _start : starts) {
+        mark:
+        for (int[] _start : starts) {
             DirectionHolder holder = new DirectionHolder(matrix, _start);
             while (true) {
                 holder.stepForward();
@@ -37,7 +39,7 @@ public class BreakEvilPieces {
                     holder.rightCount++;
                 } else {
                     if (!holder.canGoForward()) {
-                        if (!holder.canGoLeft()){
+                        if (!holder.canGoLeft()) {
 
                             continue mark;
                         }
@@ -97,9 +99,9 @@ public class BreakEvilPieces {
 
     private static void createInsertions(List<Figure> res) {
 
-        for (Figure outer: res) {
-            for (Figure inner: outer.getInnerFigures()) {
-                insert(inner,outer);
+        for (Figure outer : res) {
+            if (outer.getInnerFigures().size() > 0) {
+                insertInner(outer);
             }
         }
     }
@@ -112,12 +114,11 @@ public class BreakEvilPieces {
                         boolean con = contains(fig2.getPoints(), point);
                         boolean inside = isInside(fig2.getPoints(), fig1.getPoints().get(0));
 //                        boolean thin = isThin(fig1);
-                        if (!con && inside ) { //если нет пересечений и стартовая точка внутри
+                        if (!con && inside) { //если нет пересечений и стартовая точка внутри
                             fig2.addInnerFigure(fig1);
 //                            insert(fig1, fig2); //во второй вставляется первый
 //                            makeInsertions2(list);
-                        }
-                        else {
+                        } else {
                             break;
                         }
                     }
@@ -126,34 +127,78 @@ public class BreakEvilPieces {
         }
     }
 
+    private static void insertInner(Figure fig) {
+        String layer = fig.getFigure().replaceAll("\\+|-|\\|"," ");
+        Figure layerFigure = new Figure(layer,fig.getPoints());
+        for (Figure f:fig.getInnerFigures()) {
+            insert(f,layerFigure);
+        }
+//        System.out.println(layerFigure.getFigure());
+
+        String[][] matrix = DirectionHolder.stringToArray(layerFigure.getFigure());
+//        int[][] starts = findStarts(matrix);
+
+        int[] _start = findStarts(matrix)[0];
+            DirectionHolder holder = new DirectionHolder(matrix, _start);
+            while (true) {
+                holder.stepForward();
+                if (Arrays.equals(holder.getPoint(), _start)) {
+                    break;
+                }
+                if (holder.canGoLeft()) {
+                    holder.turnLeft();
+                    holder.leftCount++;
+                } else {
+                    if (!holder.canGoForward()) {
+                        holder.turnRight();
+                        holder.rightCount++;
+                    }
+                }
+            }
+            if (holder.rightCount > holder.leftCount) {
+
+                Figure figure = new Figure(holder.getFigure(), holder.getPointsList());
+                figure.getPoints().sort((a, b) -> { //сортируем массивы с координатами точек
+                    if (a[0] > b[0]) {
+                        return 1;
+                    }
+                    if (b[0] > a[0]) {
+                        return -1;
+                    }
+                    return Integer.compare(a[1], b[1]);
+                });
+                insert(figure,fig);
+            }
+    }
+
     //во второй вставляется первый
-    private static void insert(Figure fig1, Figure fig2) { // вызывается чаще чем нужно
-        int maxX = fig2.getPoints().stream().mapToInt(x -> x[1]).max().getAsInt();
-        int maxY = fig2.getPoints().stream().mapToInt(x -> x[0]).max().getAsInt();
+    private static void insert(Figure inner, Figure outer) { // вызывается чаще чем нужно
+        int maxX = outer.getPoints().stream().mapToInt(x -> x[1]).max().getAsInt();
+        int maxY = outer.getPoints().stream().mapToInt(x -> x[0]).max().getAsInt();
         String[][] matrix = new String[maxY + 1][maxX + 1];
         for (String[] str : matrix) {
             Arrays.fill(str, " ");
         }
-        String[][] fig2Arr = DirectionHolder.stringToArray(fig2.getFigure());
-        int offsetX = fig2.getPoints().get(0)[1];
-        int offsetY = fig2.getPoints().get(0)[0];
+        String[][] fig2Arr = DirectionHolder.stringToArray(outer.getFigure());
+        int offsetX = outer.getPoints().get(0)[1];
+        int offsetY = outer.getPoints().get(0)[0];
 
-        for (int[] a : fig2.getPoints()) {
+        for (int[] a : outer.getPoints()) {
             String s = fig2Arr[a[0] - offsetY][a[1] - offsetX];
             matrix[a[0]][a[1]] = s;
         }
 
-        String[][] fig1Arr = DirectionHolder.stringToArray(fig1.getFigure());
-        offsetX = fig1.getPoints().get(0)[1];
-        offsetY = fig1.getPoints().get(0)[0];
+        String[][] fig1Arr = DirectionHolder.stringToArray(inner.getFigure());
+        offsetX = inner.getPoints().get(0)[1];
+        offsetY = inner.getPoints().get(0)[0];
 
-        for (int[] a : fig1.getPoints()) {
+        for (int[] a : inner.getPoints()) {
             String s = fig1Arr[a[0] - offsetY][a[1] - offsetX];
             matrix[a[0]][a[1]] = s;
         }
 
-        fig2.setFigure(DirectionHolder.arrayToString(matrix));
-        fig2.getPoints().addAll(fig1.getPoints());
+        outer.setFigure(DirectionHolder.arrayToStringWithoutTrimming(matrix));
+        outer.getPoints().addAll(inner.getPoints());
     }
 
     private static boolean isInside(List<int[]> points, int[] point) {
@@ -190,7 +235,7 @@ public class BreakEvilPieces {
 class Figure {
     private String figure;
     private List<int[]> points;
-    private Map<Integer,Figure> figures;
+    private Map<Integer, Figure> figures;
 
     public Figure(String figure, List<int[]> points) {
         this.figure = figure;
@@ -210,10 +255,11 @@ class Figure {
         this.figure = figure;
     }
 
-    public void addInnerFigure(Figure figure){
-        figures.put(figure.hashCode(),figure);
+    public void addInnerFigure(Figure figure) {
+        figures.put(figure.hashCode(), figure);
     }
-    public List<Figure> getInnerFigures(){
+
+    public List<Figure> getInnerFigures() {
         return new ArrayList<>(figures.values());
     }
 
@@ -511,6 +557,11 @@ class DirectionHolder {
         return resultFigure;
     }
 
+    public String getFigureWithoutTrimming(){
+        String resultFigure = arrayToStringWithoutTrimming(resMatrix);
+        return resultFigure;
+    }
+
     public static String[][] stringToArray(String str) {
         String[] arr = str.split("\n");
         String[][] matrix = new String[arr.length][];
@@ -534,6 +585,22 @@ class DirectionHolder {
         }
         String result = res.toString();
         result = result.replaceAll("\n$", "");
+        return result;
+    }
+
+    public static String arrayToStringWithoutTrimming(String[][] arr) {
+        StringBuilder res = new StringBuilder();
+        for (String[] strings : arr) {
+            StringBuilder chars = new StringBuilder();
+            for (String string : strings) {
+                chars.append(string);
+            }
+            String str = chars.toString();
+
+                res.append(str).append("\n");
+
+        }
+        String result = res.toString();
         return result;
     }
 
