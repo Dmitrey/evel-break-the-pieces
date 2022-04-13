@@ -375,4 +375,31 @@ public class BreakPiecesTest {
         actual.sort(String::compareTo);
         Assert.assertEquals(expected, actual);
     }
+
+    @Test
+    public void test6() {
+        String shape = String.join("\n", new String[]{
+                "+--------------+",
+                "|              |",
+                "|        ++--+ |",
+                "|        ||  | |",
+                "|        ++--+ |",
+                "+--------------+"
+        });
+
+        List<String> expected = new ArrayList<>(List.of(
+                String.join("\n", new String[]{
+                        "++\n" +
+                                "||\n" +
+                                "||\n" +
+                                "++"
+                })
+        ));
+        List<String> actual = BreakEvilPieces.solve(shape);
+        System.out.println("actual:");
+        actual.forEach(System.out::println);
+        expected.sort(String::compareTo);
+        actual.sort(String::compareTo);
+        Assert.assertEquals(expected, actual);
+    }
 }

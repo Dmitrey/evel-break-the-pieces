@@ -82,7 +82,8 @@ public class BreakEvilPieces {
         }
         res.clear();
         res.addAll(map.values());
-        makeInsertions2(res);
+        findInsertions2(res);
+        createInsertions(res);
 
         List<String> finalList = res.stream()
                 .map(Figure::getFigure)
@@ -94,17 +95,29 @@ public class BreakEvilPieces {
         return finalList;
     }
 
-    private static void makeInsertions2(List<Figure> list) {
+    private static void createInsertions(List<Figure> res) {
+
+        for (Figure outer: res) {
+            for (Figure inner: outer.getInnerFigures()) {
+                insert(inner,outer);
+            }
+        }
+    }
+
+    private static void findInsertions2(List<Figure> list) {
         for (Figure fig1 : list) {
             for (Figure fig2 : list) {
                 if (fig1 != fig2) {
                     for (int[] point : fig1.getPoints()) {
                         boolean con = contains(fig2.getPoints(), point);
-                        boolean inside = inside(fig2.getPoints(), fig1.getPoints().get(0));
-                        if (!con && inside) { //если нет пересечений и стартовая точка внутри
-                            insert(fig1, fig2); //во второй вставляется первый
-                            makeInsertions2(list);
-                        } else {
+                        boolean inside = isInside(fig2.getPoints(), fig1.getPoints().get(0));
+//                        boolean thin = isThin(fig1);
+                        if (!con && inside ) { //если нет пересечений и стартовая точка внутри
+                            fig2.addInnerFigure(fig1);
+//                            insert(fig1, fig2); //во второй вставляется первый
+//                            makeInsertions2(list);
+                        }
+                        else {
                             break;
                         }
                     }
@@ -143,7 +156,7 @@ public class BreakEvilPieces {
         fig2.getPoints().addAll(fig1.getPoints());
     }
 
-    private static boolean inside(List<int[]> points, int[] point) {
+    private static boolean isInside(List<int[]> points, int[] point) {
         int minX, maxX, minY, maxY;
         minX = points.stream().mapToInt(x -> x[1]).min().getAsInt();
         maxX = points.stream().mapToInt(x -> x[1]).max().getAsInt();
@@ -177,10 +190,12 @@ public class BreakEvilPieces {
 class Figure {
     private String figure;
     private List<int[]> points;
+    private Map<Integer,Figure> figures;
 
     public Figure(String figure, List<int[]> points) {
         this.figure = figure;
         this.points = points;
+        figures = new HashMap();
     }
 
     public List<int[]> getPoints() {
@@ -193,6 +208,13 @@ class Figure {
 
     public void setFigure(String figure) {
         this.figure = figure;
+    }
+
+    public void addInnerFigure(Figure figure){
+        figures.put(figure.hashCode(),figure);
+    }
+    public List<Figure> getInnerFigures(){
+        return new ArrayList<>(figures.values());
     }
 
     @Override
